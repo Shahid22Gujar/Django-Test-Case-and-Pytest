@@ -1,0 +1,41 @@
+name: Pytest CI
+
+on:
+    workflow_call:
+    workflow_dispatch:
+    push:
+       branches: [main,master]
+    pull_request:
+        branches: [main,master]
+
+jobs:
+  simple_build:
+    runs-on: ubuntu-latest
+    env:
+      DB_DATABASE: test_db
+      DB_USER: root
+      DB_PASSWORD: root
+    steps:
+      - name: Set up MySQL
+        run: |
+          sudo /etc/init.d/mysql start
+          mysql -e 'CREATE DATABASE ${{ env.DB_DATABASE }};' -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }}
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+           python-version: 3.8
+      - name: Make a .env file
+        run: |
+            cp .sample.env .env
+      - name: Install requirements
+        run: |
+            pip install -r requirements.txt
+      - name: Run tests
+        run: |
+            pytest -v --nomigrations
+      - name: Run tests for api
+        run: |
+            pytest -v api/tests/test_views.py --nomigrations
